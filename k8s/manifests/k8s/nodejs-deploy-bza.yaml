@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-zone-aware
+  labels:
+    app: backend-zone-aware
+spec:
+  replicas: 10
+  selector:
+    matchLabels:
+      app: backend-zone-aware
+  template:
+    metadata:
+      labels:
+        app: backend-zone-aware
+    spec:
+      containers:
+        - name: backend
+          image: yusufaine/nodejs-app:latest
+          ports:
+            - name: http
+              containerPort: 3000
+          resources:
+            limits:
+              cpu: 40m
+              memory: 100Mi
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: backend-zone-aware
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: "app"
+                      operator: In
+                      values:
+                        - backend-zone-aware
+                topologyKey: "kubernetes.io/hostname"
